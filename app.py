@@ -1,8 +1,21 @@
 from flask import Flask, request, jsonify
 from urllib.parse import urlparse
 import requests
+from requests.adapters import HTTPAdapter
+from urllib3.util.retry import Retry
 
 app = Flask(__name__)
+
+# Configure retry strategy
+retry_strategy = Retry(
+    total=3,
+    backoff_factor=1,
+    status_forcelist=[429, 500, 502, 503, 504],
+    allowed_methods=["GET"]
+)
+adapter = HTTPAdapter(max_retries=retry_strategy)
+http = requests.Session()
+http.mount("https://", adapter)
 
 def extract_product_id(url):
     try:
@@ -20,28 +33,36 @@ def fetch_adidas_product_data(product_url):
         
         headers = {
             'authority': 'www.adidas.co.uk',
-            'accept': '*/*',
+            'accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
             'accept-language': 'en-US,en;q=0.9',
-            'content-type': 'application/json',
-            'priority': 'u=1, i',
-            'referer': product_url,
-            'sec-ch-ua': '"Not/A)Brand";v="99", "Microsoft Edge";v="133", "Chromium";v="133"',
+            'sec-ch-ua': '"Chromium";v="118", "Microsoft Edge";v="118", "Not=A?Brand";v="99"',
             'sec-ch-ua-mobile': '?0',
             'sec-ch-ua-platform': '"Windows"',
-            'sec-fetch-dest': 'empty',
-            'sec-fetch-mode': 'cors',
-            'sec-fetch-site': 'same-origin',
-            'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/133.0.0.0 Safari/537.36 Edg/133.0.0.0',
+            'sec-fetch-dest': 'document',
+            'sec-fetch-mode': 'navigate',
+            'sec-fetch-site': 'none',
+            'sec-fetch-user': '?1',
+            'upgrade-insecure-requests': '1',
+            'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/118.0.0.0 Safari/537.36 Edg/118.0.2088.46',
+            'referer': 'https://www.google.com/'
         }
 
         api_url = f'https://www.adidas.co.uk/api/product-list/{product_id}'
-        response = requests.get(
-            api_url, 
+        
+        response = http.get(
+            api_url,
             headers=headers,
-            proxies={'http': None, 'https': None},  # Bypass proxy issues
-            timeout=10
+            timeout=15,  # Increased timeout
+            proxies={'http': None, 'https': None}
         )
-        response.raise_for_status()
+        
+        # Additional validation
+        if response.status_code != 200:
+            return {"error": f"Adidas API returned {response.status_code}"}
+            
+        if not response.json():
+            return {"error": "Empty response from Adidas API"}
+
         data = response.json()[0]
 
         result = {

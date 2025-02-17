@@ -1,23 +1,14 @@
 from flask import Flask, request, jsonify
-from urllib.parse import urlparse
+from flask_cors import CORS
 import requests
-from requests.adapters import HTTPAdapter
-from urllib3.util.retry import Retry
+import json
+from urllib.parse import urlparse
 
 app = Flask(__name__)
-
-# Configure retry strategy
-retry_strategy = Retry(
-    total=3,
-    backoff_factor=1,
-    status_forcelist=[429, 500, 502, 503, 504],
-    allowed_methods=["GET"]
-)
-adapter = HTTPAdapter(max_retries=retry_strategy)
-http = requests.Session()
-http.mount("https://", adapter)
+CORS(app)  # Enable CORS for all routes
 
 def extract_product_id(url):
+    """Extract product ID from Adidas product URL"""
     try:
         parsed = urlparse(url)
         path_segments = [s for s in parsed.path.split('/') if s]
@@ -27,42 +18,29 @@ def extract_product_id(url):
     except Exception as e:
         raise ValueError(f"URL parsing failed: {str(e)}")
 
-def fetch_adidas_product_data(product_url):
+def get_product_data(product_url):
+    """Get complete product data from Adidas product URL"""
     try:
         product_id = extract_product_id(product_url)
         
         headers = {
-            'authority': 'www.adidas.co.uk',
-            'accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+            'accept': '*/*',
             'accept-language': 'en-US,en;q=0.9',
-            'sec-ch-ua': '"Chromium";v="118", "Microsoft Edge";v="118", "Not=A?Brand";v="99"',
+            'content-type': 'application/json',
+            'priority': 'u=1, i',
+            'referer': product_url,
+            'sec-ch-ua': '"Not/A)Brand";v="99", "Microsoft Edge";v="133", "Chromium";v="133"',
             'sec-ch-ua-mobile': '?0',
             'sec-ch-ua-platform': '"Windows"',
-            'sec-fetch-dest': 'document',
-            'sec-fetch-mode': 'navigate',
-            'sec-fetch-site': 'none',
-            'sec-fetch-user': '?1',
-            'upgrade-insecure-requests': '1',
-            'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/118.0.0.0 Safari/537.36 Edg/118.0.2088.46',
-            'referer': 'https://www.google.com/'
+            'sec-fetch-dest': 'empty',
+            'sec-fetch-mode': 'cors',
+            'sec-fetch-site': 'same-origin',
+            'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/133.0.0.0 Safari/537.36 Edg/133.0.0.0',
         }
 
         api_url = f'https://www.adidas.co.uk/api/product-list/{product_id}'
-        
-        response = http.get(
-            api_url,
-            headers=headers,
-            timeout=15,  # Increased timeout
-            proxies={'http': None, 'https': None}
-        )
-        
-        # Additional validation
-        if response.status_code != 200:
-            return {"error": f"Adidas API returned {response.status_code}"}
-            
-        if not response.json():
-            return {"error": "Empty response from Adidas API"}
-
+        response = requests.get(api_url, headers=headers)
+        response.raise_for_status()
         data = response.json()[0]
 
         result = {
@@ -79,7 +57,6 @@ def fetch_adidas_product_data(product_url):
             }
         }
 
-        # Main product color
         main_color = data.get("attribute_list", {}).get("color")
         if main_color:
             result["colors"].append({
@@ -91,7 +68,6 @@ def fetch_adidas_product_data(product_url):
             result["images"]["main_images"] = [img["image_url"] 
                                              for img in data.get("view_list", [])]
 
-        # Color variations
         for variation in data.get("product_link_list", []):
             if variation.get("type") == "color-variation":
                 result["colors"].append({
@@ -101,24 +77,28 @@ def fetch_adidas_product_data(product_url):
                 })
                 result["images"]["color_variants"].append(variation.get("image"))
 
-        return result
+        return json.dumps(result, indent=4)
 
     except Exception as e:
-        return {"error": str(e)}
+        return json.dumps({"error": str(e)}, indent=4)
 
-@app.route('/get_product_data', methods=['POST'])
-def product_data_endpoint():
-    data = request.json
-    if not data or 'product_url' not in data:
-        return jsonify({"error": "Missing product_url in request"}), 400
-    
+@app.route('/api/product', methods=['POST'])
+def handle_product_request():
     try:
-        product_data = fetch_adidas_product_data(data['product_url'])
-        if 'error' in product_data:
-            return jsonify(product_data), 500
-        return jsonify(product_data)
+        data = request.get_json()
+        if not data or 'url' not in data:
+            return jsonify({"error": "Missing product URL in request"}), 400
+        
+        product_url = data['url']
+        result = get_product_data(product_url)
+        return jsonify(json.loads(result)), 200
+    
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
+@app.route('/')
+def home():
+    return "Adidas Product API - Send POST requests to /api/product with a 'url' parameter"
+
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5000)
+    app.run(debug=True)

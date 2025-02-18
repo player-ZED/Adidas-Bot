@@ -187,9 +187,9 @@ def scrape_product():
                             "code": variation.get("productId", ""),
                             "image": variation["image"]
                         })
-                        result["images"]["color_variants"].append(variation["image"]
+                        result["images"]["color_variants"].append(variation["image"])
                 # Process sizes
-                result["sizes"] = [size.get("size") for size in product_data.get("variation_list", [])]
+                # result["sizes"] = [size.get("size") for size in product_data.get("variation_list", [])]
                 
                 logger.info(f"Successfully processed in {time.time()-start_time:.2f}s")
                 return jsonify(result)

@@ -21,18 +21,28 @@ PROXY_LIST = []
 USER_AGENTS = []
 
 def load_resources():
-    """Load proxies and user agents from files"""
+    """Load and convert proxies from host:port:user:pass format"""
     global PROXY_LIST, USER_AGENTS
     
     try:
+        # Load and convert proxies
         with open('proxies.txt', 'r') as f:
-            PROXY_LIST = [line.strip() for line in f if line.strip()]
+            for line in f:
+                line = line.strip()
+                if line.count(':') == 3:
+                    host, port, user, pwd = line.split(':', 3)
+                    PROXY_LIST.append(f"http://{user}:{pwd}@{host}:{port}")
+                    logger.debug(f"Loaded proxy: {PROXY_LIST[-1]}")
             
+        # Load user agents
         with open('user_agents.txt', 'r') as f:
             USER_AGENTS = [line.strip() for line in f if line.strip()]
             
         logger.info(f"Loaded {len(PROXY_LIST)} proxies and {len(USER_AGENTS)} user agents")
         
+        if not PROXY_LIST:
+            raise ValueError("No proxies loaded from proxies.txt")
+            
     except Exception as e:
         logger.error(f"Failed to load resources: {str(e)}")
         raise
@@ -60,16 +70,10 @@ def extract_product_id(url):
         raise
 
 def get_random_proxy():
-    """Get random proxy with proper formatting"""
-    proxy = random.choice(PROXY_LIST)
-    if '@' in proxy:
-        return {
-            'http': f'http://{proxy}',
-            'https': f'http://{proxy}'
-        }
+    """Get random pre-formatted proxy"""
     return {
-        'http': f'http://{proxy}',
-        'https': f'http://{proxy}'
+        'http': random.choice(PROXY_LIST),
+        'https': random.choice(PROXY_LIST)
     }
 
 def get_headers(referer):

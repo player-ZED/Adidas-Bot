@@ -144,14 +144,15 @@ def scrape_product():
                 
                 # Process data
                 product_data = response.json()[0]
+                # Add explicit type conversions for all fields
                 result = {
-                    "product_url": product_url,
-                    "title": product_data.get("name"),
-                    "price": product_data.get("pricing_information", {}).get("currentPrice"),
+                    "product_url": str(product_url),
+                    "title": str(product_data.get("name", "")),
+                    "price": float(product_data.get("pricing_information", {}).get("currentPrice", 0.0)),
                     "currency": "GBP",
-                    "product_code": product_data.get("model_number"),
+                    "product_code": str(product_data.get("model_number", "")),
                     "colors": [],
-                    "sizes": [],
+                    "sizes": [str(size.get("size", "")) for size in product_data.get("variation_list", [])],
                     "images": {
                         "main_images": [],
                         "color_variants": []
@@ -161,25 +162,32 @@ def scrape_product():
                 # Process colors
                 main_color = product_data.get("attribute_list", {}).get("color")
                 if main_color:
+                    # Get main image with fallback
+                    main_image = next(
+                        (img["image_url"] for img in product_data.get("view_list", []) 
+                         if img.get("type") == "other"),
+                        None
+                    )
+                    # Add fallback to first image if no 'other' type found
+                    if not main_image and product_data.get("view_list"):
+                        main_image = product_data["view_list"][0]["image_url"]
+                    
                     result["colors"].append({
                         "name": main_color,
                         "code": product_id,
-                        "image": next((img["image_url"] for img in product_data.get("view_list", [])
-                                   if img.get("type") == "other"), None)
+                        "image": main_image  # Use the validated image here
                     })
                     result["images"]["main_images"] = [img["image_url"] 
-                                                     for img in product_data.get("view_list", [])]
-                
+                                                      for img in product_data.get("view_list", [])]
                 # Process color variations
                 for variation in product_data.get("product_link_list", []):
-                    if variation.get("type") == "color-variation":
+                    if variation.get("type") == "color-variation" and variation.get("image"):
                         result["colors"].append({
-                            "name": variation.get("search_color"),
-                            "code": variation.get("productId"),
-                            "image": variation.get("image")
+                            "name": variation.get("search_color", "Unknown"),
+                            "code": variation.get("productId", ""),
+                            "image": variation["image"]
                         })
-                        result["images"]["color_variants"].append(variation.get("image"))
-                
+                        result["images"]["color_variants"].append(variation["image"]
                 # Process sizes
                 result["sizes"] = [size.get("size") for size in product_data.get("variation_list", [])]
                 

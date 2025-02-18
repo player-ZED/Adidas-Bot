@@ -28,10 +28,10 @@ def scrape_adidas():
 
         # Get proxy config from environment variables
         proxy_config = {
-            "host": os.getenv('PROXY_HOST'),
-            "port": os.getenv('PROXY_PORT'),
-            "username": os.getenv('PROXY_USERNAME'),
-            "password": os.getenv('PROXY_PASSWORD')
+            "host": "p.webshare.io",
+            "port": "80",
+            "username": "cpvdftkm-rotate",
+            "password": "tvo33zaex3wi"
         }
 
         # Configure headers

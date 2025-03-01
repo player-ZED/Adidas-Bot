@@ -150,7 +150,7 @@ def scrape_product():
                     "title": str(product_data.get("name", "")),
                     "price": float(product_data.get("pricing_information", {}).get("currentPrice", 0.0)),
                     "currency": "GBP",
-                    "product_code": str(product_data.get("model_number", "")),
+                    "product_code": product_id,
                     "colors": [],
                     "sizes": [str(size.get("size", "")) for size in product_data.get("variation_list", [])],
                     "images": {

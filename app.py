@@ -164,7 +164,7 @@ def scrape_product():
                     if "pdp-promo-nodiscount" in callout_ids:
                         adjusted_price = current_price + 1
                     elif "pdp-callout-outlet-nopromo" in callout_ids:
-                        adjusted_price = current_price + 2
+                        adjusted_price = current_price + 1.99
                     else:
                         adjusted_price = current_price
 

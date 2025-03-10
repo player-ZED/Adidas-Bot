@@ -151,27 +151,30 @@ def scrape_product():
                 if current_price is None:
                     raise ValueError("Price information is missing from the product data.")
                 
-                # Adjust price based on callouts
+                # Initialize prices
+                sku_price = current_price
+                selling_price = current_price
+
                 callouts = data.get("callouts", {})
                 callout_top_stack = callouts.get("callout_top_stack", [])
-                
+
                 if not callout_top_stack:
-                    # Apply 15% discount if no callouts are present
-                    adjusted_price = current_price * 0.85
+                    # Apply 15% discount to selling price
+                    selling_price = current_price * 0.85
                 else:
-                    # Check for specific callout IDs
                     callout_ids = {item.get("id") for item in callout_top_stack}
                     if "pdp-promo-nodiscount" in callout_ids:
-                        adjusted_price = current_price + 1
+                        # Add 0.99 to selling price for promo exclusion
+                        selling_price = current_price + 0.99
                     elif "pdp-callout-outlet-nopromo" in callout_ids:
-                        adjusted_price = current_price + 1.99
-                    else:
-                        adjusted_price = current_price
+                        # Adjust prices for outlet items
+                        sku_price = current_price + 2
+                        selling_price = sku_price + 1.99
 
                 result = {
                     "product_url": str(product_url),
                     "title": str(product_data.get("name", "")),
-                    "price": round(adjusted_price, 2),
+                    "price": round(selling_price, 2),
                     "currency": "GBP",
                     "product_code": product_id,
                     "colors": [],

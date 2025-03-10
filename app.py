@@ -174,7 +174,8 @@ def scrape_product():
                 result = {
                     "product_url": str(product_url),
                     "title": str(product_data.get("name", "")),
-                    "price": round(selling_price, 2),
+                    "sku_price": round(sku_price, 2),
+                    "selling_price": round(selling_price, 2),
                     "currency": "GBP",
                     "product_code": product_id,
                     "colors": [],

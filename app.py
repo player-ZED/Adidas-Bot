@@ -160,12 +160,13 @@ def scrape_product():
 
                 if not callout_top_stack:
                     # Apply 15% discount to selling price
-                    selling_price = current_price * 0.85
+                    selling_price = current_price - 0.1
                 else:
                     callout_ids = {item.get("id") for item in callout_top_stack}
                     if "pdp-promo-nodiscount" in callout_ids:
                         # Add 0.99 to selling price for promo exclusion
                         selling_price = current_price + 0.99
+
                     elif "pdp-callout-outlet-nopromo" in callout_ids:
                         # Adjust prices for outlet items
                         sku_price = current_price + 2

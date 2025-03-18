@@ -5,6 +5,7 @@ import random
 import time
 import logging
 import warnings
+from decimal import Decimal, ROUND_HALF_UP
 
 # Initialize Flask app
 app = Flask(__name__)
@@ -176,18 +177,18 @@ def scrape_product():
                 result = {
                     "product_url": str(product_url),
                     "title": str(product_data.get("name", "")),
-                    "sku_price": round(sku_price, 2),
-                    "selling_price": round(selling_price, 2),
+                    "sku_price": float(Decimal(str(sku_price)).quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)),
+                    "selling_price": float(Decimal(str(selling_price)).quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)),
                     "currency": "GBP",
                     "product_code": product_id,
-                    "colors": [],
-                    "sizes": [str(size.get("size", "")) for size in product_data.get("variation_list", [])],
+                    # "colors": [],
+                    # "sizes": [str(size.get("size", "")) for size in product_data.get("variation_list", [])],
                     "images": {
                         "main_images": [],
                         "color_variants": []
                     }
                 }
-                
+
                 # Process colors
                 main_color = product_data.get("attribute_list", {}).get("color")
                 if main_color:

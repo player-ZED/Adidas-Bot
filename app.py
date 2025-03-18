@@ -181,8 +181,8 @@ def scrape_product():
                     "selling_price": float(Decimal(str(selling_price)).quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)),
                     "currency": "GBP",
                     "product_code": product_id,
-                    "colors": [],
-                    "sizes": [str(size.get("size", "")) for size in product_data.get("variation_list", [])],
+                    # "colors": [],
+                    # "sizes": [str(size.get("size", "")) for size in product_data.get("variation_list", [])],
                     "images": {
                         "main_images": [],
                         "color_variants": []

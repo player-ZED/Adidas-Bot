@@ -175,7 +175,7 @@ def scrape_product():
                     elif "pdp-callout-outlet-nopromo" in callout_ids:
                         # discounted product
                         # Adjust prices for outlet items
-                        sku_price = current_price + 2
+                        sku_price = current_price 
                         selling_price = current_price + 1.199
 
                 result = {

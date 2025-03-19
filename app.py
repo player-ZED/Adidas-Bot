@@ -176,7 +176,7 @@ def scrape_product():
                         # discounted product
                         # Adjust prices for outlet items
                         sku_price = current_price + 2
-                        selling_price = sku_price + 1.199
+                        selling_price = current_price + 1.199
 
                 result = {
                     "product_url": str(product_url),

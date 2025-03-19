@@ -168,7 +168,7 @@ def scrape_product():
                     if "pdp-promo-nodiscount" in callout_ids:
                         # Add 0.99 to selling price for promo exclusion
                         sku_price = current_price
-                        selling_price = current_price + 1.99
+                        selling_price = current_price + 0.99
 
                     elif "pdp-callout-outlet-nopromo" in callout_ids:
                         # Adjust prices for outlet items

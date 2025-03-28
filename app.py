@@ -186,7 +186,7 @@ def scrape_product():
                     "currency": "GBP",
                     "product_code": product_id,
                     "colors": [],
-                    # "sizes": [str(size.get("size", "")) for size in product_data.get("variation_list", [])],
+                    "sizes": [str(size.get("size", "")) for size in product_data.get("variation_list", [])],
                     "images": {
                         "main_images": [],
                         "color_variants": []
@@ -223,7 +223,7 @@ def scrape_product():
                         })
                         result["images"]["color_variants"].append(variation["image"])
                 # Process sizes
-                # result["sizes"] = [size.get("size") for size in product_data.get("variation_list", [])]
+                result["sizes"] = [size.get("size") for size in product_data.get("variation_list", [])]
                 
                 logger.info(f"Successfully processed in {time.time()-start_time:.2f}s")
                 return jsonify(result)

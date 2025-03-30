@@ -156,28 +156,32 @@ def scrape_product():
                 sku_price = current_price
                 selling_price = current_price
 
-                callouts = data.get("callouts", {})
-                callout_top_stack = callouts.get("callout_top_stack", [])
+                pricing_info = product_data.get("pricing_information")  
 
-                if not callout_top_stack:
-                    # normal product
-                    # Apply 15% discount to selling price
-                    sku_price = current_price * 0.85
-                    selling_price = current_price - 0.01
+                if pricing_info and pricing_info.get("discount_text"):  
+                    # Discounted product - on sale
+                    sku_price = current_price
+                    selling_price = current_price + 1.199
+
                 else:
-                    callout_ids = {item.get("id") for item in callout_top_stack}
+                    callouts = product_data.get("callouts", {})
+                    callout_ids = set()
+
+                    if callouts:
+                        callout_top_stack = callouts.get("callout_top_stack", [])
+                        if callout_top_stack:
+                            callout_ids = {item.get("id") for item in callout_top_stack}
+
                     if "pdp-promo-nodiscount" in callout_ids:
-                        # promo exclusion
-                        # Add 0.99 to selling price for promo exclusion
+                        # Promo exclusion - Add 0.99 to selling price
                         sku_price = current_price
                         selling_price = current_price + 0.99
-
-                    elif "pdp-callout-outlet-nopromo" in callout_ids:
-                        # discounted product
-                        # Adjust prices for outlet items
-                        sku_price = current_price 
-                        selling_price = current_price + 1.199
-
+                
+                    else:
+                        # Normal product - Apply 15% discount to selling price
+                        sku_price = current_price * 0.85
+                        selling_price = current_price - 0.01
+                        
                 result = {
                     "product_url": str(product_url),
                     "title": str(product_data.get("name", "")),

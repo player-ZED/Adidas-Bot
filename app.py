@@ -221,7 +221,7 @@ def scrape_product():
                 for variation in product_data.get("product_link_list", []):
                     if variation.get("type") == "color-variation" and variation.get("image"):
                         result["colors"].append({
-                            "name": variation.get("search_color", "Unknown"),
+                            "name": variation.get("default_color", "Unknown"),
                             "code": variation.get("productId", ""),
                             "image": variation["image"]
                         })

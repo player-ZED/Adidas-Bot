@@ -94,6 +94,40 @@ def get_headers(referer):
         'x-requested-with': 'XMLHttpRequest'
     }
 
+def adjust_price(price, pricing_info, callouts):
+    """Apply consistent price adjustment logic"""
+    # First check if the product is on sale (has discount text)
+    if pricing_info and pricing_info.get("discount_text"):
+        # Discounted product - on sale
+        sku_price = price
+        selling_price = price + 1.199
+    else:
+        # Check for callouts
+        callout_ids = set()
+        if callouts:
+            callout_top_stack = callouts.get("callout_top_stack", [])
+            if callout_top_stack:
+                callout_ids = {item.get("id") for item in callout_top_stack}
+
+        if "pdp-promo-nodiscount" in callout_ids:
+            # Promo exclusion - Add 0.99 to selling price
+            sku_price = price
+            selling_price = price + 0.99
+        else:
+            # Normal product - Apply 15% discount to selling price
+            sku_price = price * 0.85
+            selling_price = price - 0.01
+    
+    # Round prices to 2 decimal places
+    sku_price = float(Decimal(str(sku_price)).quantize(Decimal('0.01'), rounding=ROUND_HALF_UP))
+    selling_price = float(Decimal(str(selling_price)).quantize(Decimal('0.01'), rounding=ROUND_HALF_UP))
+    
+    return sku_price, selling_price
+
+def get_last_price(price_info):
+    """Get the last price from price information array"""
+    return price_info[-1]["value"] if price_info else None
+
 @app.route('/scrape', methods=['POST'])
 def scrape_product():
     """Main scraping endpoint"""
@@ -145,52 +179,28 @@ def scrape_product():
                 
                 # Process data
                 product_data = response.json()[0]
-                # Add explicit type conversions for all fields
-                data = product_data
+                
                 # Extract current price
-                current_price = data["pricing_information"].get("currentPrice")
+                current_price = product_data["pricing_information"].get("currentPrice")
                 if current_price is None:
                     raise ValueError("Price information is missing from the product data.")
                 
-                # Initialize prices
-                sku_price = current_price
-                selling_price = current_price
-
-                pricing_info = product_data.get("pricing_information")  
-
-                if pricing_info and pricing_info.get("discount_text"):  
-                    # Discounted product - on sale
-                    sku_price = current_price
-                    selling_price = current_price + 1.199
-
-                else:
-                    callouts = product_data.get("callouts", {})
-                    callout_ids = set()
-
-                    if callouts:
-                        callout_top_stack = callouts.get("callout_top_stack", [])
-                        if callout_top_stack:
-                            callout_ids = {item.get("id") for item in callout_top_stack}
-
-                    if "pdp-promo-nodiscount" in callout_ids:
-                        # Promo exclusion - Add 0.99 to selling price
-                        sku_price = current_price
-                        selling_price = current_price + 0.99
+                # Get pricing information and callouts for adjustments
+                pricing_info = product_data.get("pricing_information")
+                callouts = product_data.get("callouts", {})
                 
-                    else:
-                        # Normal product - Apply 15% discount to selling price
-                        sku_price = current_price * 0.85
-                        selling_price = current_price - 0.01
+                # Apply price adjustments
+                sku_price, selling_price = adjust_price(current_price, pricing_info, callouts)
 
                 # Extract product description
-                product_description = data.get("product_description", {}).get("text")
+                product_description = product_data.get("product_description", {}).get("text")
         
                 result = {
                     "product_url": str(product_url),
                     "title": str(product_data.get("name", "")),
                     "product_description": product_description,
-                    "sku_price": float(Decimal(str(sku_price)).quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)),
-                    "selling_price": float(Decimal(str(selling_price)).quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)),
+                    "sku_price": sku_price,
+                    "selling_price": selling_price,
                     "currency": "GBP",
                     "product_code": product_id,
                     "colors": [],
@@ -201,7 +211,7 @@ def scrape_product():
                     }
                 }
 
-                # Process colors
+                # Process main color
                 main_color = product_data.get("attribute_list", {}).get("color")
                 if main_color:
                     # Get main image with fallback
@@ -217,19 +227,35 @@ def scrape_product():
                     result["colors"].append({
                         "name": main_color,
                         "code": product_id,
-                        "image": main_image  # Use the validated image here
+                        "image": main_image,
+                        "sku_price": sku_price,
+                        "selling_price": selling_price
                     })
                     result["images"]["main_images"] = [img["image_url"] 
                                                       for img in product_data.get("view_list", [])]
-                # Process color variations
+                
+                # Process color variations with price adjustments
                 for variation in product_data.get("product_link_list", []):
                     if variation.get("type") == "color-variation" and variation.get("image"):
+                        # Get original price for this variant
+                        variant_price = get_last_price(variation.get("price_information", []))
+                        if variant_price is None:
+                            variant_price = current_price  # Fall back to main product price
+                        
+                        # Apply price adjustment to variant
+                        variant_sku_price, variant_selling_price = adjust_price(
+                            variant_price, pricing_info, callouts
+                        )
+                        
                         result["colors"].append({
                             "name": variation.get("default_color", "Unknown"),
                             "code": variation.get("productId", ""),
-                            "image": variation["image"]
+                            "image": variation["image"],
+                            "sku_price": variant_sku_price,
+                            "selling_price": variant_selling_price
                         })
                         result["images"]["color_variants"].append(variation["image"])
+                
                 # Process sizes
                 result["sizes"] = [size.get("size") for size in product_data.get("variation_list", [])]
                 

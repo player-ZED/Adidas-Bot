@@ -181,10 +181,14 @@ def scrape_product():
                         # Normal product - Apply 15% discount to selling price
                         sku_price = current_price * 0.85
                         selling_price = current_price - 0.01
-                        
+
+                # Extract product description
+                product_description = data.get("product_description", {}).get("text")
+        
                 result = {
                     "product_url": str(product_url),
                     "title": str(product_data.get("name", "")),
+                    "product_description": product_description,
                     "sku_price": float(Decimal(str(sku_price)).quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)),
                     "selling_price": float(Decimal(str(selling_price)).quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)),
                     "currency": "GBP",

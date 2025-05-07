@@ -112,7 +112,7 @@ def adjust_prices(price, callout_top_stack):
     if not callout_top_stack:
         # Normal product - Apply 15% discount to sku_price, subtract 0.01 from current_price
         sku_price = ( price * 0.85 ) + 1
-        selling_price = price - 0.01 ) + 1
+        selling_price = ( price - 0.01 ) + 1
     else:
         # Check for specific callout IDs
         callout_ids = {item.get("id") for item in callout_top_stack}

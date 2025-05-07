@@ -111,19 +111,19 @@ def adjust_prices(price, callout_top_stack):
     
     if not callout_top_stack:
         # Normal product - Apply 15% discount to sku_price, subtract 0.01 from current_price
-        sku_price = price * 0.85
-        selling_price = price - 0.01
+        sku_price = ( price * 0.85 ) + 1
+        selling_price = price - 0.01 ) + 1
     else:
         # Check for specific callout IDs
         callout_ids = {item.get("id") for item in callout_top_stack}
         if "pdp-promo-nodiscount" in callout_ids:
             # Promo exclusion - Keep sku_price as current_price, add 0.99 to current_price
-            sku_price = price
-            selling_price = price + 0.99
+            sku_price = ( price ) + 1
+            selling_price = ( price + 0.99 ) + 1
         elif "pdp-callout-outlet-nopromo" in callout_ids:
             # Outlet item - Keep sku_price as current_price, add 1.199 to current_price
-            sku_price = price
-            selling_price = price + 1.199
+            sku_price = ( price ) + 1
+            selling_price = ( price + 1.199 ) + 1
     
     # Round prices to 2 decimal places
     sku_price = float(Decimal(str(sku_price)).quantize(Decimal('0.01'), rounding=ROUND_HALF_UP))
